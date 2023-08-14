@@ -19,6 +19,9 @@ def randomBetween(startInclusive : int,endExclusive : int):
 	"""
 	return randomBelow(endExclusive - startInclusive) + startInclusive
 
+def leastWithBits(bitCount : int):
+	return 1 << (bitCount - 1)
+
 def millerRabin(p: int,passes = 1):
 	"""
 	Performs the specified number of random Miller Rabin tests on p.
@@ -54,13 +57,15 @@ def millerRabin(p: int,passes = 1):
 
 	return None
 
-def verifyMillerRabin(p : int, witness: int):
+def testCompositeWitness(p : int, witness: int):
 	"""
-	Verifies that p is composite according to the witness value.
-	Returns True if the verification succeeds. False otherwise.
+	Returns True if p is composite according to the witness value. False otherwise.
 	"""
 	if not (2 <= witness < p):
 		return False
+	
+	if (p % witness == 0):
+		return True
 
 	k = p - 1
 	d = k
@@ -126,6 +131,11 @@ def nextProbablePrime(v : int, p : int):
 	
 	return v
 
+def randomPrime(bits : int,p : int = ...):
+	if p is ...:
+		p = bits * 2
+	return nextProbablePrime(randomBetween(leastWithBits(bits),1 << bits),p)
+
 def gcd(a : int, b : int):
 	"""
 	Greatest Common Divisor
@@ -164,3 +174,13 @@ def discreteInverse(r0,r1):
 	else:
 		return None
 
+def randomDiscreteInversePair(mod):
+	while True:
+		e = randomBetween(2,mod - 1)
+		if gcd(e,mod) != 1:
+			continue
+		d = discreteInverse(e, mod)
+		if d is None:
+			continue
+		assert (e * d) % mod == 1
+		return (e,d % mod)

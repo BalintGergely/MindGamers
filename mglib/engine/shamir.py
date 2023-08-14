@@ -1,11 +1,13 @@
 import mglib.engine.numbers as numbers
 import mglib.engine.padding as padding
 import secrets as secrets
-from typing import Iterable
+from typing import Iterable, Tuple
 
 def polynom(modulus : int, coefficents : Iterable[int], x : int):
 	"""
 	Simple polynom evaluation.
+
+	Needs no explanation.
 	"""
 	k = 1
 	v = 0
@@ -16,9 +18,11 @@ def polynom(modulus : int, coefficents : Iterable[int], x : int):
 
 	return v
 
-def lagrange(modulus : int, points : Iterable[(int,int)], x : int):
+def lagrange(modulus : int, points : Iterable[Tuple[int,int]], x : int):
 	"""
 	Simple polynom interpolation.
+
+	Find a least order polynom that contains all points, and evaluate it at location x.
 	"""
 	if not isinstance(points,tuple | list | set):
 		points = set(points)
@@ -46,44 +50,82 @@ class Shamir():
 		self.__threshold = t
 		pass
 
-	def shatter(self,message : bytes,count : int = ...):
+	def __recover(self,shards : Iterable[Tuple[int,int]]):
+		shards = iter(shards)
+		
+		points = dict()
+		while len(points) < self.__threshold:
+			try:
+				(k,v) = next(shards)
+				assert (k not in points) or (points[k] == v)
+				points[k] = v
+			except StopIteration:
+				raise Exception("Not enough shards!")
+		
+		return tuple(points.items())
+
+	def shatter(self,message : int | Iterable[Tuple[int,int]],count : int = ...,verify = True):
 		"""
 		Shatters the secret input into the specified number of cryptographic shards.
-		"""
-		secret = padding.bytesToInt(padding.simplePad(message))
-		# Generate random polynom f of order (threshold - 1) such that f(0) = secret.
-		coefficents = [secret] + [numbers.randomBelow(self.__modulus) for _ in range(self.__threshold - 1)]
 
-		locations = {0}
+		Alternatively if input is a sufficient collection of shards, makes more shards.
+		"""
+
+		if count is ...:
+			count = self.__modulus
+		
+		f = None
+
+		if isinstance(message,int):
+			# Generate random polynom f of order (threshold - 1) such that f(0) = secret.
+			coefficents = [message] + [numbers.randomBelow(self.__modulus) for _ in range(self.__threshold - 1)]
+
+			f = lambda x: polynom(self.__modulus, coefficents, x)
+
+			locations = {0}
+		else:
+			points = self.__recover(message)
+
+			f = lambda x: lagrange(self.__modulus, points, x)
+
+			locations = set(k for (k,_) in points)
+			try:
+				while True:
+					(x,y) = next(message)
+					assert not verify or f(x) == y, "Inconsistent!"
+					locations.add(x)
+			except StopIteration:
+				pass
+
 		# Evaluate the polynom at many distinct procedurally generated locations.
-		while count is ... or len(locations) <= count:
+		for _ in range(count):
 			x = numbers.randomBelow(self.__modulus)
 			if x not in locations:
 				locations.add(x)
-				yield (x,polynom(coefficents,self.__modulus,x))
+				yield (x,f(x))
 	
-	def recover(self,shards,verify = False):
+	def getModulus(self):
+		return self.__modulus
+	
+	def recover(self,shards,verify = True):
 		"""
 		Recover the secret from the shards, and optionally verify their integrity.
 		"""
 		shards = iter(shards)
-		points = set()
-		while len(points) < self.__threshold:
-			try:
-				points.append(next(shards))
-			except StopIteration:
-				raise Exception("Not enough shards!")
 		
+		points = self.__recover(shards)
+
+		f = lambda x: lagrange(self.__modulus, points, x)
+
 		if verify:
 			try:
 				while True:
 					(x,y) = next(shards)
-					assert lagrange(self.__modulus, points, x) == y, "Inconsistent!"
+					assert f(x) == y, "Inconsistent!"
 			except StopIteration:
 				pass
-		
-		secret = lagrange(self.__modulus, points, 0)
-		return padding.simpleUnpad(padding.intToBytes(secret))
+
+		return f(0)
 
 	def toJson(self):
 		d = dict()
