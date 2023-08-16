@@ -76,8 +76,41 @@ def sharedRandomProbablePrime(peer : Peer, security : int):
 		number = number + 2
 
 def sharedFisherYates(peer : Peer, elementCount, security : int):
-	return sharedRandom(peer, range(2,elementCount + 1), security)
+	return sharedRandom(peer, list(range(2,elementCount + 1)), security)
 
-def sharedPermutation(peer : Peer, elements : List, security : int):
+def sharedShuffle(peer : Peer, elements : List, security : int):
 	count = len(elements)
-	utils.performSwaps(zip(range(1,count),sharedFisherYates(peer, count, security)))
+	return utils.performSwaps(elements,zip(range(1,count),sharedFisherYates(peer, count, security)))
+
+def coinFlip(peer : Peer, security : int):
+	"""
+	Performs a coinflip with the peer. Either we or them win the coinflip.
+	Returns True if we won, False if the peer won.
+
+	This is a symmetric protocol, which yields asymmetric results.
+	"""
+	basic.agreeOn(peer,"Coinflip")
+	while True:
+		myResult = randomBelow(1 << security)
+
+		myC = commit(hex(myResult), security)
+		peer.send(myC.toJson(includeSalt=False,includeProof=True))
+		peerC = Commitment(**peer.recv(dict))
+		peerC.verifyHasProof()
+		peer.send(myResult)
+
+		peerResult = peer.recv(int)
+		assert 0 <= peerResult # The integer is not actually bounded.
+		peer.send(myC.toJson(includeSalt=True,includeProof=False))
+		peerC.update(**peer.recv(dict))
+		peerC.verify(hex(peerResult))
+
+		if myResult == peerResult:
+			security = security + 1
+			continue # What are the odds????
+		
+		parity = bool((myResult + peerResult) % 2)
+		
+		asymm = bool(myResult < peerResult)
+
+		return bool(parity == asymm)

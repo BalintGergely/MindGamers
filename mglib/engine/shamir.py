@@ -98,11 +98,13 @@ class Shamir():
 				pass
 
 		# Evaluate the polynom at many distinct procedurally generated locations.
-		for _ in range(count):
+
+		while count > 0:
 			x = numbers.randomBelow(self.__modulus)
 			if x not in locations:
 				locations.add(x)
 				yield (x,f(x))
+				count = count - 1
 	
 	def getModulus(self):
 		return self.__modulus
