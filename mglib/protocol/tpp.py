@@ -1,6 +1,6 @@
 
 import mglib.network.basic as basic
-import mglib.engine.rsa as rsa
+import mglib.engine.exponents as exponents
 import mglib.engine.numbers as numbers
 import mglib.engine.utils as utils
 import mglib.protocol.random as random
@@ -18,7 +18,7 @@ def obliviousSend(peer : Peer, messages : List[int], sendCount : int, security) 
 	"""
 	passCount = sendCount
 	basic.agreeOn(peer,"Oblivious Transfer",len(messages),passCount,basic.sender())
-	cipher : rsa.Cipher = rsa.asymmetric(security).keygen()
+	cipher : exponents.Cipher = exponents.asymmetric(security).keygen()
 	modulus = cipher.getModulus()
 	blinds = [numbers.randomBelow(modulus) for _ in messages]
 
@@ -46,7 +46,7 @@ def obliviousReceive(peer : Peer, messageCount : int, wantedMessages : Set[int] 
 	passCount = len(wantedMessages)
 	basic.agreeOn(peer, "Oblivious Transfer", messageCount, passCount, basic.receiver())
 
-	cipher = rsa.Cipher(**peer.recv(dict))
+	cipher = exponents.Cipher(**peer.recv(dict))
 	modulus = cipher.getModulus()
 	blinds = peer.recv([range(modulus)] * messageCount)
 
@@ -93,7 +93,7 @@ def psi(peer : Peer,
 	
 	modulus = random.sharedRandomProbablePrime(peer, security)
 
-	cipher = rsa.commutative(modulus).keygen()
+	cipher = exponents.commutative(modulus).keygen()
 
 	myHashes = list(cipher.encrypt(int.from_bytes(sha256(toBytes(elem)).digest(),"big")) for elem in myElements)
 

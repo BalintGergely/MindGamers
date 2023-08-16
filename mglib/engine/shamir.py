@@ -1,7 +1,7 @@
 import mglib.engine.numbers as numbers
 import mglib.engine.padding as padding
 import secrets as secrets
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, List
 
 def polynom(modulus : int, coefficents : Iterable[int], x : int):
 	"""
@@ -22,29 +22,49 @@ def lagrange(modulus : int, points : Iterable[Tuple[int,int]], x : int):
 	"""
 	Simple polynom interpolation.
 
-	Find a least order polynom that contains all points, and evaluate it at location x.
+	Find a least order polynom that contains all points in the iterable, and evaluate it at location x.
 	"""
 	if not isinstance(points,tuple | list | set):
 		points = set(points)
+	
+	# The interpolated polynom can be thought of as a sum of "Lagrange Polynoms".
+	# Each Lagrange Polynom f has the property that f(x) = y for one (x,y) pair,
+	# while f(x) = 0 for any other (x,y) pair in the set of points.
+	# Find the Lagrange Polynom for all points in the set, and sum the values.
 
 	k = 0
 	for (xn,yn) in points:
 
-		m = yn
+		m = yn # Need f(xn) == yn so we start with it.
 
 		for (xk,yk) in points:
 			if xn != xk:
+				# Need f(xk) == 0, so we multiply by (x - xk)
 				m = m * (x - xk) % modulus
-		
-		for (xk,yk) in points:
-			if xn != xk:
-				m = m * numbers.discreteInverse((xn - xk) % modulus, modulus) % modulus
+				# This will multiply f(xn) by (xn - xk) so we divide the
+				# whole function by that value to restore the original f(xn) == yn
+				# We do not ever divide by zero because of the xn != xk check.
+				m = m * numbers.discreteInverse((xn - xk) / modulus,modulus) % modulus
+				m = m % modulus
 		
 		k = (k + m) % modulus
 	
 	return k
 
 class Shamir():
+	"""
+	The Shamir system is a way to break down a secret value into many shards, such that any specified number
+	of shards are capable of reconstructing the secret.
+
+	The system works using polynom interpolation. Say we would like to "shatter" the secret m
+	into shards such that 'n' shards are possible to reconstruct the secret.
+
+	We generate a random polynom f of order n-1 such that f(0) == m. Then we evaluate the polynom at random
+	points generating (x,y) shards that are location pairs. (x,y) = (x,f(x))
+
+	To reconstruct the secret, you take any n shards, and perform a polynom interpolation
+	over them, which results in the original random polynom. Then you simply evaluate it at f(0) to recover the secret.
+	"""
 	def __init__(self, m : int, t : int) -> None:
 		self.__modulus = m
 		self.__threshold = t

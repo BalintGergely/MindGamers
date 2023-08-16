@@ -34,7 +34,21 @@ class Keygen:
 		self.__phi = p
 	
 	def keygen(self):
+		# Need e * d such that x ** (e * d) % modulus == x
+
+		# Phi is the number of relative primes of modulus.
+		# It has the special property that x ** phi % modulus == 1 for any x
+
 		(e,d) = randomDiscreteInversePair(self.__phi)
+
+		#         e * d % phi == 1
+		# ====>   e * d == k * phi + 1  for some k
+
+		#         x ** phi           % modulus == 1
+		# ====>   x ** (phi * k)     % modulus == 1
+		# ====>   x ** (phi * k + 1) % modulus == x
+		# ====>   x ** (e * d)       % modulus == x
+
 		return Cipher(self.__modulus,e,d)
 	
 	def toJson(self,includePrivate : bool = True):
@@ -45,6 +59,14 @@ class Keygen:
 		return d
 
 def asymmetric(strength : int = 0x100):
+	"""
+	Returns an asymmetric key generator.
+
+	Asymmetric keys are interlocked key pairs where the original keygen is required
+	to calculate one key from the other.
+
+	Thus, they are ideal for public-key private-key cryptography.
+	"""
 	sa = strength // 2 + 1
 	sb = strength // 2 + 2
 	p = nextProbablePrime(randomBetween(leastWithBits(sa),leastWithBits(sb)), strength)
@@ -54,4 +76,14 @@ def asymmetric(strength : int = 0x100):
 	return Keygen(p * q, phi)
 
 def commutative(prime : int):
+	"""
+	Returns a commutative key generator, produced using the specifid prime number.
+
+	Commutative keys are interlocked key pairs where it is easy to calculate
+	one key from the other, and thus need to be kept secret.
+
+	Their useful property is their commutativity, such that for any value x, and
+	a, b keys produced by the same keygen, the following property holds:
+		a.encrypt(b.encrypt(x)) == b.encrypt(a.encrypt(x))
+	"""
 	return Keygen(prime, prime - 1)

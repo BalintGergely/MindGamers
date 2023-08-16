@@ -1,7 +1,9 @@
 
+from typing import Tuple
+
 import secrets
 
-def randomBelow(limit : int):
+def randomBelow(limit : int) -> int:
 	"""
 	A random integer between 0 (inclusive) and the limit (exclusive).
 	"""
@@ -13,22 +15,25 @@ def randomBelow(limit : int):
 				return k
 	return secrets.randbelow(limit)
 
-def randomBetween(startInclusive : int,endExclusive : int):
+def randomBetween(startInclusive : int,endExclusive : int) -> int:
 	"""
 	A random integer between the two arguments.
 	"""
 	return randomBelow(endExclusive - startInclusive) + startInclusive
 
-def leastWithBits(bitCount : int):
+def leastWithBits(bitCount : int) -> int:
+	"""
+	The least int value with the specified bit count.
+	"""
 	return 1 << (bitCount - 1)
 
-def millerRabin(p: int,passes = 1):
+def millerRabin(p: int,passes = 1) -> int | None:
 	"""
 	Performs the specified number of random Miller Rabin tests on p.
 	If p fails a test, the witness value for that test is returned.
 	If p passes all tests, None is returned.
 
-	Prime numbers always pass all tests. All composite numbers have a chance to fail a test.
+	Prime numbers always pass all tests. All composite numbers have AT LEAST a 3/4 chance to fail a test.
 	The more tests the better, but take longer.
 	"""
 	k = p - 1
@@ -57,15 +62,19 @@ def millerRabin(p: int,passes = 1):
 
 	return None
 
-def testCompositeWitness(p : int, witness: int):
+def testCompositeWitness(p : int, witness: int) -> bool:
 	"""
 	Returns True if p is composite according to the witness value. False otherwise.
+
+	This method verifies witness valuse returned by the millerRabin test.
 	"""
-	if not (2 <= witness < p):
-		return False
+	if not (1 < witness < p):
+		return False # Must not be a trivial divisor.
 	
 	if (p % witness == 0):
-		return True
+		return True # Composite because we have a real divisor. Duh.
+	
+	# Test if it is a Miller Rabin witness of compositeness.
 
 	k = p - 1
 	d = k
@@ -92,7 +101,7 @@ def testCompositeWitness(p : int, witness: int):
 	
 	return False
 
-def isProbablePrime(v : int, passes : int):
+def isProbablePrime(v : int, passes : int) -> bool:
 	"""
 	Returns True if the first argument is probably a prime, False if it is definitely composite.
 
@@ -117,21 +126,29 @@ def isProbablePrime(v : int, passes : int):
 	# Otherwise perform the specified number of Miller Rabin tests.
 	return millerRabin(v, passes) == None
 
-def nextProbablePrime(v : int, p : int):
+def nextProbablePrime(v : int, p : int) -> int:
+	"""
+	Returns what is most likely the least probable prime greater than the first argument.
+
+	This method has a negligible chance to return a composite number, but will never skip a prime
+	while searching.
+	"""
 	v = v + 1
 
 	if v == 2:
 		return v
-
-	if (v & 1) == 0:
-		v = v + 1
+	
+	v = v | 0x1
 
 	while not isProbablePrime(v,p):
 		v = v + 2
 	
 	return v
 
-def randomPrime(bits : int,p : int = ...):
+def randomProbablePrime(bits : int,p : int = ...) -> int:
+	"""
+	A random prime number with the specified number of bits.
+	"""
 	if p is ...:
 		p = bits * 2
 	return nextProbablePrime(randomBetween(leastWithBits(bits),1 << bits),p)
@@ -153,9 +170,12 @@ def lcm(a : int, b : int):
 	"""
 	return a * b // gcd(a,b)
 
-def discreteInverse(r0,r1):
+def discreteInverse(r0,r1) -> int | None:
 	"""
 	Discrete inverse of r0 modulo r1.
+
+	This (r2) is an integer that acts as the reciprocal of r0, satisfying the equation 
+	(r2 * r0) % r1 == 1. If such number doesn't exist, None is returned.
 	"""
 	s0 = 1
 	s1 = 0
@@ -174,7 +194,11 @@ def discreteInverse(r0,r1):
 	else:
 		return None
 
-def randomDiscreteInversePair(mod):
+def randomDiscreteInversePair(mod) -> Tuple[int,int]:
+	"""
+	A random pair of numbers that are the discrete inverses of each other, over the
+	finite field defined by the argument.
+	"""
 	while True:
 		e = randomBetween(2,mod - 1)
 		if gcd(e,mod) != 1:

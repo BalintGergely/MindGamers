@@ -136,5 +136,5 @@ def crsgGame(peer : Peer | str, randomAppCount : int, secretAppIds : Set[int], s
 	random.sharedShuffle(peer,finalAppIds,security)
 
 	for k in finalAppIds:
-		print(f"https://store.steampowered.com/app/{k} ||{steam.tryFindSteamAppName(k)}||")
+		print(f"https://store.steampowered.com/app/{k}")
 

@@ -86,11 +86,13 @@ class Commitment:
 
 def commit(value, security : int) -> Commitment:
 	"""
-	Produces a proof of independence. This is most commonly used
-	when we require input from someone before we send them
-	some data, but we also need to prove to them
-	that the data was generated in advance, and has no correlation
-	to their input.
+	Produces a proof of independence from the value. The commitment uniquely identifies the value.
+
+	This is useful if we have a secret value that we eventually want to reveal to a peer,
+	but not immediately, and we want to assure them that we do not change the value.
+
+	We can generate the commitment and send it first, and it is possible to later
+	verify that the value did not change since the creation of the commitment.
 	"""
 	h = sha256()
 	if isinstance(value,str):

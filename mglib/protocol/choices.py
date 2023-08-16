@@ -2,7 +2,7 @@
 from mglib.network.peer import Peer
 import mglib.engine.numbers as numbers
 import mglib.engine.shamir as shamir
-import mglib.engine.rsa as rsa
+import mglib.engine.exponents as exponents
 import mglib.engine.commitment as commitment
 import mglib.engine.utils as utils
 import mglib.network.basic as basic
@@ -38,9 +38,9 @@ def secretChoiceA(peer : Peer,elementCount : int,finalCount : int,myChoices : Se
 
 	dhPrime = random.sharedRandomProbablePrime(peer, security)
 
-	dhCipher = rsa.commutative(dhPrime).keygen()
+	dhCipher = exponents.commutative(dhPrime).keygen()
 
-	shamirModulus = numbers.randomPrime(security // 2 - 1)
+	shamirModulus = numbers.randomProbablePrime(security // 2 - 1)
 
 	assert shamirModulus * shamirModulus < dhPrime
 
@@ -145,7 +145,7 @@ def secretChoiceB(peer : Peer,elementCount : int,finalCount : int,myChoices : Se
 
 	dhPrime = random.sharedRandomProbablePrime(peer, security)
 
-	dhCipher = rsa.commutative(dhPrime).keygen()
+	dhCipher = exponents.commutative(dhPrime).keygen()
 
 	shamirContext = shamir.Shamir(**peer.recv(dict))
 
