@@ -1,7 +1,7 @@
 
 from mglib.network.peer import *
 from mglib.protocol.choices import *
-from mglib.progress import filterAll
+from mglib.progress import filterAll, filterThenSlice
 
 import time
 
@@ -11,27 +11,12 @@ import itertools
 appSpaceModulus = 1600000
 testsPerApp = 25
 
-def soloMode():
+def soloMode(count : int):
 	idspace = utils.shuffle(list(range(appSpaceModulus)))
 
-	hits = 0
-	total = 0
-	startTime = time.time()
+	for k in filterThenSlice(idspace, steam.checkSteamAppExists, count):
+		print(f"https://store.steampowered.com/app/{k}")
 
-	for k in idspace:
-		total = total + 1
-		if steam.checkSteamAppExists(k):
-			print(f"https://store.steampowered.com/app/{k}")
-			hits = hits + 1
-		if hits == 10:
-			break
-	
-	endTime = time.time()
-
-	deltaTime = endTime - startTime
-	
-	print(f"Success rate {hits}/{total} ~ 1/{total/hits:0.2f}")
-	print(f"Took {deltaTime} seconds. Rate: {total/deltaTime:0.2} requests per second")
 
 def crsgGame(peer : Peer | str, randomAppCount : int, secretAppIds : Set[int], security : int):
 
